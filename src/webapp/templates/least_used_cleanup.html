@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Least Used Files &amp; Apps Cleaner</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-alt: #eef2ff;
+      --border: #d1d9e6;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --danger: #dc2626;
+      --danger-dark: #991b1b;
+      --warning: #ca8a04;
+      --success: #059669;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header.app-header {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #fff;
+      padding: 2.5rem 1.5rem 2rem;
+      box-shadow: 0 8px 20px rgba(30, 58, 138, 0.35);
+    }
+
+    header.app-header h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      letter-spacing: -0.01em;
+    }
+
+    header.app-header p {
+      margin: 0.75rem 0 0;
+      max-width: 720px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: -2.5rem auto 2.5rem;
+      padding: 0 1.5rem 3rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 15px 30px rgba(15, 23, 42, 0.12);
+      padding: 2rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 1.35rem;
+    }
+
+    form.scan-form textarea,
+    form.scan-form input[type="number"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      background: #f9fafc;
+      transition: border 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    form.scan-form textarea:focus,
+    form.scan-form input[type="number"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      background: #fff;
+    }
+
+    form.scan-form label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    form.scan-form .form-row {
+      margin-bottom: 1.5rem;
+    }
+
+    .help-text {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.35rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-grid label {
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-flags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin: 1.25rem 0 0.75rem;
+    }
+
+    .form-flags label {
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.75rem 1.6rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.2);
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: #e2e8f0;
+      color: var(--muted);
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #cbd5f5;
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: #fff;
+      box-shadow: 0 10px 18px rgba(220, 38, 38, 0.18);
+    }
+
+    button.danger:hover:not(:disabled) {
+      background: var(--danger-dark);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .actions-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .actions-bar .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .selection-info {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .status-panel {
+      display: none;
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.25rem;
+      border-radius: 14px;
+      border-left: 6px solid transparent;
+      font-weight: 500;
+    }
+
+    .status-panel[data-status] {
+      display: block;
+    }
+
+    .status-panel[data-status="info"] {
+      background: #e0f2fe;
+      border-color: #0284c7;
+      color: #0f172a;
+    }
+
+    .status-panel[data-status="success"] {
+      background: #dcfce7;
+      border-color: #059669;
+      color: #065f46;
+    }
+
+    .status-panel[data-status="warning"] {
+      background: #fef9c3;
+      border-color: #ca8a04;
+      color: #854d0e;
+    }
+
+    .status-panel[data-status="error"] {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #7f1d1d;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .meta-grid .item {
+      background: var(--surface-alt);
+      border-radius: 12px;
+      padding: 1rem;
+      border: 1px solid rgba(37, 99, 235, 0.15);
+    }
+
+    .meta-grid .label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .meta-alert {
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.75rem;
+      border-left: 5px solid;
+      background: #fff7ed;
+      color: #7c2d12;
+    }
+
+    .meta-alert.error {
+      background: #fef2f2;
+      color: #7f1d1d;
+      border-color: #ef4444;
+    }
+
+    .meta-alert ul {
+      margin: 0.5rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .table-wrapper {
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 960px;
+    }
+
+    thead th {
+      text-align: left;
+      background: #eef2ff;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 0.85rem 0.95rem;
+      font-size: 0.9rem;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tbody td {
+      padding: 0.85rem 0.95rem;
+      border-top: 1px solid rgba(209, 217, 230, 0.6);
+      font-size: 0.95rem;
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(226, 232, 240, 0.25);
+    }
+
+    tbody tr:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .path-cell {
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+
+    .path-cell .path-main {
+      display: block;
+    }
+
+    .path-cell .path-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.4rem;
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary-dark);
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .type-cell {
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .numeric {
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 1rem 0 0;
+    }
+
+    @media (max-width: 720px) {
+      header.app-header {
+        padding: 2rem 1.25rem 1.75rem;
+      }
+
+      header.app-header h1 {
+        font-size: 1.75rem;
+      }
+
+      .card {
+        padding: 1.5rem;
+      }
+
+      .form-flags {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .actions-bar .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <h1>Least Used Files &amp; Apps Cleaner</h1>
+      <p>Scan your Linux directories to uncover the files and executable apps that have not been used for the longest time. Review the results in your browser and delete unused items with a single click.</p>
+    </div>
+  </header>
+  <main>
+    <section class="card">
+      <h2>Scan configuration</h2>
+      <form id="scan-form" class="scan-form">
+        <div class="form-row">
+          <label for="scan-dirs">Directories to scan</label>
+          <textarea id="scan-dirs" name="dirs" rows="2" spellcheck="false">~</textarea>
+          <p class="help-text">Use commas or new lines to list multiple directories. The default (~) scans your home directory.</p>
+        </div>
+        <div class="form-grid">
+          <label for="scan-limit">Maximum items to list
+            <input id="scan-limit" name="limit" type="number" min="1" max="500" value="50" />
+          </label>
+          <label for="scan-min-size">Minimum file size (MB)
+            <input id="scan-min-size" name="min_size_mb" type="number" min="0" step="1" value="0" />
+          </label>
+          <label for="scan-min-days">Minimum days unused
+            <input id="scan-min-days" name="min_unused_days" type="number" min="0" step="1" value="0" />
+          </label>
+        </div>
+        <div class="form-flags">
+          <label><input id="include-files" type="checkbox" checked /> Include regular files</label>
+          <label><input id="include-apps" type="checkbox" checked /> Include executables (apps)</label>
+          <label><input id="skip-hidden" type="checkbox" checked /> Skip hidden files/folders</label>
+          <label><input id="follow-symlinks" type="checkbox" /> Follow symbolic links</label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" id="run-scan" class="primary">🔍 Scan now</button>
+          <button type="button" id="reset-form" class="secondary">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="status-panel" class="status-panel" role="status" aria-live="polite"></section>
+
+    <section class="card">
+      <div class="actions-bar">
+        <div class="actions">
+          <button type="button" id="refresh-button" class="primary">🔄 Refresh list</button>
+          <button type="button" id="delete-selected" class="danger">🗑️ Delete selected</button>
+          <button type="button" id="delete-all" class="danger">⚡ Delete all listed items</button>
+        </div>
+        <div class="selection-info" id="selection-info">No items selected.</div>
+      </div>
+      <div id="meta-container" class="meta-container" aria-live="polite"></div>
+      <div class="table-wrapper" aria-live="polite">
+        <table id="results-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="select-all" aria-label="Select all" /></th>
+              <th>#</th>
+              <th>Path</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th>Unused for</th>
+              <th>Last used</th>
+              <th>Last accessed</th>
+              <th>Last modified</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <p>Tip: double-check the list before deleting anything important. Executable files are detected via UNIX permissions.</p>
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      const state = {
+        records: [],
+        selected: new Set(),
+        meta: {},
+        loading: false,
+        lastQueryString: ''
+      };
+
+      const form = document.getElementById('scan-form');
+      const statusPanel = document.getElementById('status-panel');
+      const metaContainer = document.getElementById('meta-container');
+      const tableBody = document.querySelector('#results-table tbody');
+      const selectAllCheckbox = document.getElementById('select-all');
+      const selectionInfo = document.getElementById('selection-info');
+      const refreshButton = document.getElementById('refresh-button');
+      const deleteSelectedButton = document.getElementById('delete-selected');
+      const deleteAllButton = document.getElementById('delete-all');
+      const runScanButton = document.getElementById('run-scan');
+      const resetButton = document.getElementById('reset-form');
+      const dirsField = document.getElementById('scan-dirs');
+      const limitField = document.getElementById('scan-limit');
+      const minSizeField = document.getElementById('scan-min-size');
+      const minDaysField = document.getElementById('scan-min-days');
+      const includeFilesField = document.getElementById('include-files');
+      const includeAppsField = document.getElementById('include-apps');
+      const skipHiddenField = document.getElementById('skip-hidden');
+      const followSymlinksField = document.getElementById('follow-symlinks');
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatDate(value) {
+        if (!value) {
+          return '—';
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return escapeHtml(value);
+        }
+        return escapeHtml(date.toLocaleString());
+      }
+
+      function formatNumber(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          return '0';
+        }
+        return new Intl.NumberFormat().format(value);
+      }
+
+      function updateStatus(message, type = 'info') {
+        if (!statusPanel) return;
+        if (!message) {
+          statusPanel.textContent = '';
+          statusPanel.removeAttribute('data-status');
+          return;
+        }
+        statusPanel.textContent = message;
+        statusPanel.setAttribute('data-status', type);
+      }
+
+      function buildQueryParams() {
+        const params = new URLSearchParams();
+        const directories = dirsField.value
+          .split(/[\n,]/)
+          .map((part) => part.trim())
+          .filter((part) => part.length > 0);
+        if (directories.length) {
+          params.set('dirs', directories.join(','));
+        }
+
+        const limit = parseInt(limitField.value, 10);
+        if (!Number.isNaN(limit)) {
+          params.set('limit', String(limit));
+        }
+
+        const minSize = parseFloat(minSizeField.value);
+        if (!Number.isNaN(minSize) && minSize > 0) {
+          params.set('min_size_mb', String(minSize));
+        }
+
+        const minDays = parseFloat(minDaysField.value);
+        if (!Number.isNaN(minDays) && minDays > 0) {
+          params.set('min_unused_days', String(minDays));
+        }
+
+        if (!includeFilesField.checked) {
+          params.set('include_files', 'false');
+        }
+
+        if (!includeAppsField.checked) {
+          params.set('include_apps', 'false');
+        }
+
+        if (!skipHiddenField.checked) {
+          params.set('skip_hidden', 'false');
+        }
+
+        if (followSymlinksField.checked) {
+          params.set('follow_symlinks', 'true');
+        }
+
+        return params;
+      }
+
+      function setLoading(isLoading) {
+        state.loading = isLoading;
+        document.body.classList.toggle('is-loading', isLoading);
+        updateActionButtons();
+      }
+
+      function updateActionButtons() {
+        const hasRecords = state.records.length > 0;
+        const hasSelection = state.selected.size > 0;
+        if (refreshButton) refreshButton.disabled = state.loading;
+        if (runScanButton) runScanButton.disabled = state.loading;
+        if (resetButton) resetButton.disabled = state.loading;
+        if (deleteSelectedButton) deleteSelectedButton.disabled = state.loading || !hasSelection;
+        if (deleteAllButton) deleteAllButton.disabled = state.loading || !hasRecords;
+      }
+
+      function updateSelectionInfo() {
+        const total = state.records.length;
+        const selectedCount = state.selected.size;
+        if (selectionInfo) {
+          selectionInfo.textContent = selectedCount
+            ? `${selectedCount} of ${total} item(s) selected`
+            : 'No items selected.';
+        }
+        updateActionButtons();
+      }
+
+      function updateSelectAllState() {
+        const total = state.records.length;
+        const selectedCount = state.selected.size;
+        if (!selectAllCheckbox) return;
+        if (total === 0) {
+          selectAllCheckbox.checked = false;
+          selectAllCheckbox.indeterminate = false;
+          return;
+        }
+        if (selectedCount === 0) {
+          selectAllCheckbox.checked = false;
+          selectAllCheckbox.indeterminate = false;
+        } else if (selectedCount === total) {
+          selectAllCheckbox.checked = true;
+          selectAllCheckbox.indeterminate = false;
+        } else {
+          selectAllCheckbox.checked = false;
+          selectAllCheckbox.indeterminate = true;
+        }
+      }
+
+      function cleanSelection() {
+        const available = new Set(state.records.map((record) => record.path));
+        state.selected = new Set([...state.selected].filter((path) => available.has(path)));
+      }
+
+      function createCell(content, className) {
+        const td = document.createElement('td');
+        if (className) td.className = className;
+        if (content instanceof Node) {
+          td.appendChild(content);
+        } else {
+          td.innerHTML = content;
+        }
+        return td;
+      }
+
+      function renderRecords() {
+        tableBody.innerHTML = '';
+        cleanSelection();
+
+        if (!state.records.length) {
+          const tr = document.createElement('tr');
+          tr.className = 'empty-row';
+          const td = document.createElement('td');
+          td.colSpan = 9;
+          td.textContent = 'No files matched your filters.';
+          tr.appendChild(td);
+          tableBody.appendChild(tr);
+          updateSelectAllState();
+          updateSelectionInfo();
+          return;
+        }
+
+        state.records.forEach((record, index) => {
+          const tr = document.createElement('tr');
+          tr.dataset.path = record.path;
+
+          const selectTd = document.createElement('td');
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'record-select';
+          checkbox.checked = state.selected.has(record.path);
+          checkbox.addEventListener('change', (event) => {
+            if (event.target.checked) {
+              state.selected.add(record.path);
+            } else {
+              state.selected.delete(record.path);
+            }
+            updateSelectAllState();
+            updateSelectionInfo();
+          });
+          selectTd.appendChild(checkbox);
+          tr.appendChild(selectTd);
+
+          tr.appendChild(createCell(String(index + 1), 'numeric'));
+
+          const pathCell = document.createElement('td');
+          pathCell.className = 'path-cell';
+          const pathMain = document.createElement('div');
+          pathMain.className = 'path-main';
+          pathMain.textContent = record.path;
+          const tag = document.createElement('span');
+          tag.className = 'path-tag';
+          tag.textContent = record.is_executable ? 'Executable' : 'File';
+          pathCell.appendChild(pathMain);
+          pathCell.appendChild(tag);
+          tr.appendChild(pathCell);
+
+          const typeText = record.category ? record.category : (record.is_executable ? 'application' : 'file');
+          tr.appendChild(createCell(escapeHtml(typeText), 'type-cell'));
+          tr.appendChild(createCell(escapeHtml(record.size_human || '0 B'), 'numeric'));
+          tr.appendChild(createCell(escapeHtml(record.unused_for || '—'), 'numeric'));
+
+          const lastUsedCell = document.createElement('td');
+          lastUsedCell.className = 'numeric';
+          lastUsedCell.textContent = formatDate(record.last_used);
+          lastUsedCell.title = record.last_used ? new Date(record.last_used).toISOString() : '';
+          tr.appendChild(lastUsedCell);
+
+          const lastAccessCell = document.createElement('td');
+          lastAccessCell.className = 'numeric';
+          lastAccessCell.textContent = formatDate(record.last_access);
+          lastAccessCell.title = record.last_access ? new Date(record.last_access).toISOString() : '';
+          tr.appendChild(lastAccessCell);
+
+          const lastModifiedCell = document.createElement('td');
+          lastModifiedCell.className = 'numeric';
+          lastModifiedCell.textContent = formatDate(record.last_modified);
+          lastModifiedCell.title = record.last_modified ? new Date(record.last_modified).toISOString() : '';
+          tr.appendChild(lastModifiedCell);
+
+          tableBody.appendChild(tr);
+        });
+
+        updateSelectAllState();
+        updateSelectionInfo();
+      }
+
+      function renderMeta() {
+        if (!metaContainer) return;
+        const meta = state.meta || {};
+        if (!meta || Object.keys(meta).length === 0) {
+          metaContainer.innerHTML = '';
+          return;
+        }
+
+        const generatedAt = meta.generated_at ? new Date(meta.generated_at).toLocaleString() : '—';
+        const directories = Array.isArray(meta.base_directories) && meta.base_directories.length
+          ? meta.base_directories.map(escapeHtml).join(', ')
+          : '—';
+        const missing = Array.isArray(meta.missing_directories) && meta.missing_directories.length
+          ? meta.missing_directories.map((dir) => `<code>${escapeHtml(dir)}</code>`).join(', ')
+          : '';
+        const errors = Array.isArray(meta.errors) ? meta.errors : [];
+
+        const summaryParts = [
+          `<div class="item"><span class="label">Generated</span><strong>${escapeHtml(generatedAt)}</strong></div>`,
+          `<div class="item"><span class="label">Results returned</span><strong>${formatNumber(meta.result_count || state.records.length)}</strong> / limit ${formatNumber(meta.limit || 0)}</div>`,
+          `<div class="item"><span class="label">Files considered</span><strong>${formatNumber(meta.files_considered || 0)}</strong> of ${formatNumber(meta.files_scanned || 0)}</div>`,
+          `<div class="item"><span class="label">Skipped hidden</span><strong>${formatNumber(meta.skipped_hidden_count || 0)}</strong></div>`,
+          `<div class="item"><span class="label">Skipped directories</span><strong>${formatNumber(meta.skipped_directories_count || 0)}</strong></div>`,
+          `<div class="item"><span class="label">Scanned directories</span>${directories}</div>`
+        ];
+
+        metaContainer.innerHTML = `<div class="meta-grid">${summaryParts.join('')}</div>`;
+
+        if (missing) {
+          metaContainer.innerHTML += `<div class="meta-alert warning"><strong>Missing directories:</strong> ${missing}</div>`;
+        }
+
+        if (errors.length) {
+          const limitedErrors = errors.slice(0, 5).map((err) => {
+            const path = err.path ? `<code>${escapeHtml(err.path)}</code>` : 'Unknown path';
+            const message = err.error ? escapeHtml(err.error) : 'Error';
+            return `<li>${path}: ${message}</li>`;
+          }).join('');
+          const extra = errors.length > 5 ? `<p>${errors.length - 5} additional issue(s) not shown.</p>` : '';
+          metaContainer.innerHTML += `<div class="meta-alert error"><strong>Permissions / IO issues:</strong><ul>${limitedErrors}</ul>${extra}</div>`;
+        }
+      }
+
+      async function fetchRecords(options = {}) {
+        if (state.loading) return false;
+        const useLast = Boolean(options.useLast);
+        const showProgress = options.showProgress === undefined ? true : Boolean(options.showProgress);
+        let queryString = state.lastQueryString;
+        if (!useLast || !queryString) {
+          const params = buildQueryParams();
+          queryString = params.toString();
+          state.lastQueryString = queryString;
+        }
+
+        setLoading(true);
+        if (showProgress) {
+          updateStatus('Scanning directories for unused files...', 'info');
+        }
+
+        let success = false;
+        try {
+          const response = await fetch(`/api/least-used?${queryString}`, {
+            headers: { Accept: 'application/json' }
+          });
+          if (!response.ok) {
+            throw new Error(`Scan failed with status ${response.status}`);
+          }
+          const payload = await response.json();
+          state.records = Array.isArray(payload.data) ? payload.data : [];
+          state.meta = payload.meta || {};
+          cleanSelection();
+          renderRecords();
+          renderMeta();
+          success = true;
+          if (showProgress) {
+            updateStatus(`Loaded ${state.records.length} item(s).`, 'success');
+          }
+        } catch (error) {
+          console.error(error);
+          state.records = [];
+          state.meta = {};
+          renderRecords();
+          renderMeta();
+          updateStatus(`Scan failed: ${error.message}`, 'error');
+        } finally {
+          setLoading(false);
+        }
+
+        return success;
+      }
+
+      async function runDeletion(paths, { label }) {
+        if (!paths.length) {
+          updateStatus('No files selected for deletion.', 'warning');
+          return;
+        }
+        const confirmed = window.confirm(`${label} ${paths.length} item(s)? This action cannot be undone.`);
+        if (!confirmed) {
+          return;
+        }
+
+        setLoading(true);
+        updateStatus('Deleting selected files...', 'info');
+        let summaryText = '';
+        let summaryType = 'success';
+        let hadDeletionError = false;
+        try {
+          const response = await fetch('/api/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ paths })
+          });
+          if (!response.ok) {
+            throw new Error(`Deletion failed with status ${response.status}`);
+          }
+          const payload = await response.json();
+          const results = Array.isArray(payload.results) ? payload.results : [];
+          const summary = {
+            deleted: results.filter((item) => item.status === 'deleted').length,
+            errors: results.filter((item) => item.status === 'error').length,
+            skipped: results.filter((item) => item.status === 'skipped').length,
+            missing: results.filter((item) => item.status === 'missing').length
+          };
+          summaryText = `Deleted ${summary.deleted} item(s); ${summary.skipped} skipped; ${summary.missing} missing; ${summary.errors} error(s).`;
+          summaryType = summary.errors ? 'warning' : 'success';
+          updateStatus(summaryText, summaryType);
+        } catch (error) {
+          console.error(error);
+          hadDeletionError = true;
+          updateStatus(`Deletion failed: ${error.message}`, 'error');
+        } finally {
+          state.selected.clear();
+          setLoading(false);
+        }
+
+        const refreshed = await fetchRecords({ useLast: true, showProgress: false });
+        if (!refreshed) {
+          if (!hadDeletionError) {
+            const warningText = summaryText
+              ? `${summaryText} Refresh failed, please run a new scan.`
+              : 'Unable to refresh results after deletion.';
+            updateStatus(warningText, 'warning');
+          }
+        } else if (!hadDeletionError && summaryText) {
+          updateStatus(summaryText, summaryType);
+        }
+      }
+
+      // Event bindings
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        fetchRecords({ useLast: false });
+      });
+
+      refreshButton.addEventListener('click', () => {
+        fetchRecords({ useLast: false });
+      });
+
+      resetButton.addEventListener('click', () => {
+        form.reset();
+        dirsField.value = '~';
+      });
+
+      deleteSelectedButton.addEventListener('click', () => {
+        const paths = Array.from(state.selected);
+        runDeletion(paths, { label: 'Delete the selected' });
+      });
+
+      deleteAllButton.addEventListener('click', () => {
+        const paths = state.records.map((record) => record.path);
+        runDeletion(paths, { label: 'Delete ALL listed' });
+      });
+
+      selectAllCheckbox.addEventListener('change', (event) => {
+        if (event.target.checked) {
+          state.records.forEach((record) => state.selected.add(record.path));
+        } else {
+          state.selected.clear();
+        }
+        renderRecords();
+      });
+
+      // Initial load
+      updateSelectionInfo();
+      updateActionButtons();
+      fetchRecords({ useLast: false });
+    })();
+  </script>
+</body>
+</html>

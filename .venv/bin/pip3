@@ -1,4 +1,4 @@
-#!/home/ubntu/Projects/disk-avcisi/.venv/bin/python3
+#!/home/ubntu/Projects/disk-avcisi/.venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
