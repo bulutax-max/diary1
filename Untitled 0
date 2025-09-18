@@ -1,0 +1,7 @@
+disk-avcisi/
+  src/
+    core/
+      scan.py
+    gui_streamlit.py
+  requirements.txt
+  README.md
